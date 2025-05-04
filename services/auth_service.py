@@ -1,23 +1,30 @@
 from extensions import db
+from models.role import RoleType
 from models.user import User
-from sqlalchemy.exc import IntegrityError
 
 def register_user(username, password):
-    if User.query.filter_by(username=username).first():
+    existing_user = User.query.filter_by(username=username).first()
+    if existing_user:
         return None, "Username already exists"
 
-    new_user = User(username=username, password=password)
+    new_user = User(username=username)
+    new_user.set_password(password)
+    new_user.set_role(RoleType.STUDENT)
     db.session.add(new_user)
-    try:
-        db.session.commit()
-        return new_user, None
-    except IntegrityError as e:
-        db.session.rollback()
-        return None, "Database error: " + str(e)
+    db.session.commit()
+
+    return new_user, None
 
 def login_user(username, password):
     user = User.query.filter_by(username=username).first()
-    if not user or user.password != password:
-        return None, "Invalid username or password"
-
+    if not user:
+        return None, "Incorrect username"
+    if not user.check_password(password):
+        return None, "Incorrect password"
     return user, None
+
+def get_user_role(user):
+    user = User.query.filter_by(username=user.username).first()
+    if not user:
+        return None, "User not found"
+    return user.role.name, ""
