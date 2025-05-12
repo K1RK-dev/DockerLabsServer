@@ -3,15 +3,14 @@ from flask_login import current_user, login_required
 from extensions import db
 from models import Lab
 from models.role import RoleType
+from utils.decorators import roles_required
 
 labs_bp = Blueprint('labs', __name__, url_prefix='/labs')
 
 @labs_bp.route('/', methods=['POST'])
 @login_required
+@roles_required([RoleType.ADMIN, RoleType.TEACHER], current_user)
 def create_lab():
-    if current_user.role not in (RoleType.ADMIN, RoleType.TEACHER):
-        return jsonify({'msg': 'Unauthorized'}), 403
-
     data = request.get_json()
     title = data.get('title')
     description = data.get('description')

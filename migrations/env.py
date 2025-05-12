@@ -2,6 +2,8 @@ import logging
 from logging.config import fileConfig
 
 from flask import current_app
+from extensions import db
+from models import *
 
 from alembic import context
 
