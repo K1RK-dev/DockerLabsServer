@@ -1,14 +1,14 @@
-from os.path import join, exists
-from docker.errors import APIError, NotFound
+import os
+from docker.errors import APIError, NotFound, BuildError
 from app import Config
-from models import Dockerfile, Image, Container, dockerfile
+from models import Dockerfile, Image, Container
 from extensions import db
 from docker import from_env
 
 
 def create_dockerfile(file):
     filename = 'Dockerfile_' + file.filename
-    file.save(join(Config.UPLOAD_FOLDER, filename))
+    file.save(os.path.join(Config.UPLOAD_FOLDER, filename))
     new_dockerfile = Dockerfile(filename=filename)
     new_dockerfile.set_filename(filename)
     new_dockerfile.set_path(Config.UPLOAD_FOLDER + filename)
@@ -22,25 +22,44 @@ def create_image(name, dockerfile_id, teacher_id):
     db.session.commit()
     return new_image, None
 
+
 def build_image(image):
     try:
         client = from_env()
         dockerfile = Config.UPLOAD_FOLDER + image.dockerfile.filename
-        if not exists(dockerfile):
+        if not os.path.isfile(dockerfile):
             return None, f"Dockerfile not found: {dockerfile}"
+
         with open(dockerfile, 'rb') as f:
             try:
-                image, build_log = client.images.build(fileobj=f, tag=image.name)
+                response = client.api.build(fileobj=f, tag=image.name, decode=True)
+                image_id = None
+                for line in response:
+                    if 'stream' in line:
+                        print(line['stream'], end='')
+                    elif 'error' in line:
+                        return None, f"Error building image: {line['error']}"
+                    elif 'aux' in line and 'ID' in line['aux']:
+                        image_id = line['aux']['ID']
+
+                if image_id:
+                    image.image_id = image_id
+                    db.session.add(image)
+                    db.session.commit()
+                    return image, None
+                else:
+                    return None, "Image ID not found in build logs."
+
+            except BuildError as e:
+                return None, f"Error building image: {e.msg}\n{e.build_log}"
             except APIError as e:
                 return None, f"Error building image: {e}"
-            f.close()
     except NotFound as e:
         return None, f"Dockerfile not found: {e}"
     except APIError as e:
         return None, f"Error building image: {e}"
     except Exception as e:
         return None, str(e)
-    return image, None
 
 def delete_image(image):
     try:
@@ -67,7 +86,7 @@ def start_container(container):
         return None, f"Error starting container: {e}"
     except Exception as e:
         return None, str(e)
-    return None, None
+    return container.id, None
 
 def stop_container(container):
     try:
@@ -85,7 +104,7 @@ def stop_container(container):
 def run_container(image):
     try:
         client = from_env()
-        container = client.containers.run(image.name, detach=True)
+        container = client.containers.run(image.name, detach=True, ports={'8000/tcp': None})
         container_model = Container()
         container_model.container_id = container.id
         container_model.name = container.name
@@ -97,4 +116,4 @@ def run_container(image):
         return None, f"Error running container: {e}"
     except Exception as e:
         return None, str(e)
-    return container, None
+    return container.id, None

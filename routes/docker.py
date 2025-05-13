@@ -73,8 +73,8 @@ def stop_container(container_id):
 @login_required
 def run_container(image_id):
     image = Image.query.get_or_404(image_id)
-    image, error = docker_service.run_container(image)
+    container_id, error = docker_service.run_container(image)
     if error:
         return jsonify({'msg': error}), 403
-    return jsonify({'msg': 'Container started successfully'}), 201
+    return jsonify({'msg': 'Container started successfully', "id": container_id}), 201
 
