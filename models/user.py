@@ -24,5 +24,13 @@ class User(UserMixin, db.Model):
 		else:
 			raise ValueError('Role not found')
 
+	def to_dict(self):
+		return {
+			'id': self.id,
+			'username': self.username,
+			'is_active': self.is_active,
+			'role_id': self.role_id,
+		}
+
 	def __repr__(self):
 		return f'<User {self.username}>'

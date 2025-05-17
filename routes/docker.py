@@ -31,6 +31,20 @@ def create_image():
         return jsonify({'msg': error}), 403
     return jsonify({'msg': 'Image created successfully', 'id': image.id}), 201
 
+@docker_bp.route('/delete_dockerfile/<int:dockerfile_id>', methods=['DELETE'])
+@login_required
+@roles_required([RoleType.ADMIN, RoleType.TEACHER], current_user)
+def delete_dockerfile(dockerfile_id):
+    dockerfile = Dockerfile.query.get_or_404(dockerfile_id)
+    if dockerfile.user_id != current_user.id and current_user.role.name != RoleType.ADMIN:
+        return jsonify({'msg': 'You are not authorized to perform this action'}), 403
+    else:
+        result, error = docker_service.delete_dockerfile(dockerfile)
+        if error:
+            return jsonify({'msg': error}), 403
+        return jsonify({'msg': result}), 200
+
+
 @docker_bp.route('/delete_image/<int:image_id>', methods=['DELETE'])
 @login_required
 @roles_required([RoleType.ADMIN, RoleType.TEACHER], current_user)

@@ -16,8 +16,21 @@ def create_dockerfile(file):
     db.session.commit()
     return new_dockerfile, None
 
-def create_image(name, dockerfile_id, teacher_id):
-    new_image = Image(name=name, dockerfile_id=dockerfile_id, teacher_id=teacher_id)
+
+def delete_dockerfile(dockerfile):
+    if Image.query.filter_by(dockerfile_id=dockerfile.id):
+        return None, "Cannot delete Dockerfile while its attached to the image"
+    if not os.path.isfile(Config.UPLOAD_FOLDER + dockerfile.filename):
+        return None, "File not found"
+    try:
+        os.remove(Config.UPLOAD_FOLDER + dockerfile.filename)
+        dockerfile.delete()
+        return dockerfile.id, None
+    except Exception as e:
+        return None, f"Cannot remove file {dockerfile.filename}: {e}"
+
+def create_image(name, dockerfile_id, user_id):
+    new_image = Image(name=name, dockerfile_id=dockerfile_id, user_id=user_id)
     db.session.add(new_image)
     db.session.commit()
     return new_image, None
@@ -61,10 +74,12 @@ def build_image(image):
     except Exception as e:
         return None, str(e)
 
+
 def delete_image(image):
     try:
-        client = from_env()
-        client.images.remove(image.id)
+        if image.image_id:
+            client = from_env()
+            client.images.remove(image.image_id)
         db.session.delete(image)
         db.session.commit()
         return image, None
@@ -74,6 +89,7 @@ def delete_image(image):
         return None, str(e)
     except Exception as e:
         return None, str(e)
+
 
 def start_container(container):
     try:
@@ -88,6 +104,7 @@ def start_container(container):
         return None, str(e)
     return container.id, None
 
+
 def stop_container(container):
     try:
         client = from_env()
@@ -100,6 +117,7 @@ def stop_container(container):
     except Exception as e:
         return None, str(e)
     return None, None
+
 
 def run_container(image):
     try:
