@@ -7,8 +7,13 @@ class User(UserMixin, db.Model):
 	username = db.Column(db.String(80), unique=True, nullable=False)
 	password_hash = db.Column(db.String(200), nullable=False)
 	is_active = db.Column(db.Boolean, nullable=False, default=True)
+	first_name = db.Column(db.String(80), nullable=True)
+	last_name = db.Column(db.String(80), nullable=True)
+	middle_name = db.Column(db.String(80), nullable=True)
 	role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
 	role = db.relationship('Role', backref='user', lazy=True)
+	group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+	group = db.relationship('Group', backref='user', lazy=True)
 
 	def set_password(self, password):
 		self.password_hash = generate_password_hash(password)
@@ -24,12 +29,34 @@ class User(UserMixin, db.Model):
 		else:
 			raise ValueError('Role not found')
 
+	def set_group(self, group):
+		from models.group import Group
+		print(group)
+		db_group = Group.query.filter_by(id=group['id']).first()
+		if db_group:
+			self.group_id = db_group.id
+		else:
+			raise ValueError('Group not found')
+
+	def set_first_name(self, first_name):
+		self.first_name = first_name
+
+	def set_last_name(self, last_name):
+		self.last_name = last_name
+
+	def set_middle_name(self, middle_name):
+		self.middle_name = middle_name
+
 	def to_dict(self):
 		return {
 			'id': self.id,
 			'username': self.username,
 			'is_active': self.is_active,
 			'role_id': self.role_id,
+			'first_name': self.first_name,
+			'last_name': self.last_name,
+			'middle_name': self.middle_name,
+			'group_id': self.group_id,
 		}
 
 	def __repr__(self):

@@ -7,7 +7,7 @@ import docker
 containers_bp = Blueprint('containers', __name__, url_prefix='/containers')
 client = docker.from_env()
 
-@containers_bp.route('/', methods=['POST'])
+@containers_bp.route('/create_container', methods=['POST'])
 @login_required
 def create_container():
     data = request.get_json()
@@ -25,7 +25,7 @@ def create_container():
     db.session.commit()
     return jsonify({'msg': 'Container created successfully', 'container_id': container_id}), 201
 
-@containers_bp.route('/<int:container_id>', methods=['DELETE'])
+@containers_bp.route('/delete_container/<int:container_id>', methods=['DELETE'])
 @login_required
 def delete_container(container_id):
     container = Container.query.get_or_404(container_id)

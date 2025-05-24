@@ -9,11 +9,16 @@ def register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    first_name = data.get('firstname')
+    last_name = data.get('lastname')
+    middle_name = data.get('middlename')
+    group = data.get('group')
 
     if not username or not password:
         return jsonify({"msg": "Username and password is required"}), 400
 
-    user, error_message = register_user(username, password)
+    user, error_message = register_user(username, password,
+                                        group, first_name, last_name, middle_name)
     if error_message:
         return jsonify({"msg": error_message}), 400
 
