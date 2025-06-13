@@ -29,6 +29,18 @@ def delete_dockerfile(dockerfile):
     except Exception as e:
         return None, f"Cannot remove file {dockerfile.filename}: {e}"
 
+def get_images(user_id = 0):
+    if user_id == 0:
+        images = Image.query.all()
+        if not images:
+            return [], f"No images found"
+        return images, None
+    else:
+        images = Image.query.filter_by(user_id=user_id).all()
+        if not images:
+            return [], f"No images found"
+        return images, None
+
 def create_image(name, dockerfile_id, user_id):
     new_image = Image(name=name, dockerfile_id=dockerfile_id, user_id=user_id)
     db.session.add(new_image)

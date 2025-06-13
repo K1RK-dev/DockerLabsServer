@@ -48,6 +48,14 @@ def login():
     else:
         return jsonify({"msg": "Login failed"}), 401
 
+@auth_bp.route("/userInfo", methods=['GET'])
+@login_required
+def user_info():
+    role, error_message = get_user_role(current_user)
+    if not role:
+        return jsonify({"msg": error_message}), 404
+    return jsonify({"id": current_user.id, "username": current_user.username, "role": role.name})
+
 @auth_bp.route("/getRole", methods=['GET'])
 @login_required
 def get_role():

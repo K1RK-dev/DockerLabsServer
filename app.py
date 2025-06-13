@@ -6,6 +6,7 @@ from routes.main import main_bp
 from routes.docker import docker_bp
 from routes.labs import labs_bp
 from routes.users import users_bp
+from routes.containers import containers_bp
 from extensions import *
 from services.socketio_service import register_socketio_handlers
 
@@ -25,6 +26,7 @@ app.register_blueprint(docker_bp, url_prefix='/docker')
 app.register_blueprint(labs_bp, url_prefix='/labs')
 app.register_blueprint(groups_bp, url_prefix='/groups')
 app.register_blueprint(users_bp, url_prefix='/users')
+app.register_blueprint(containers_bp, url_prefix='/containers')
 
 @login_manager.user_loader
 def load_user(user_id):

@@ -19,6 +19,22 @@ def create_dockerfile():
         return jsonify({'msg': error}), 403
     return jsonify({'msg': 'File saved', 'filename': dockerfile.path}), 201
 
+@docker_bp.route('/get_images', methods=['GET'])
+@login_required
+@roles_required([RoleType.ADMIN, RoleType.TEACHER], current_user)
+def get_images():
+    if current_user.role == RoleType.ADMIN:
+        images, error = docker_service.get_images(0)
+        if error:
+            return jsonify({'msg': error}), 403
+        return jsonify({'images': images}), 200
+    else:
+        images, error = docker_service.get_images(current_user.id)
+        if error:
+            return jsonify({'msg': error}), 403
+        images_list = [image.to_dict() for image in images]
+        return jsonify({'images': images_list}), 200
+
 @docker_bp.route('/create_image', methods=['POST'])
 @login_required
 @roles_required([RoleType.ADMIN, RoleType.TEACHER], current_user)
@@ -65,25 +81,31 @@ def build_image(image_id):
         return jsonify({'msg': error}), 403
     return jsonify({'msg': 'Image built successfully', 'id': image.id}), 201
 
-@docker_bp.route('/start_container/<int:container_id>', methods=['POST'])
+@docker_bp.route('/start_container/<string:container_id>', methods=['POST'])
 @login_required
 def start_container(container_id):
-    container = Container.query.get_or_404(container_id)
-    container, error = docker_service.start_container(container)
-    if error:
-        return jsonify({'msg': error}), 403
-    return jsonify({'msg': 'Container started successfully'}), 201
+    container = Container.get_by_id(container_id)
+    if container:
+        container, error = docker_service.start_container(container)
+        if error:
+            return jsonify({'msg': error}), 403
+        return jsonify({'msg': 'Container started successfully'}), 201
+    else:
+        return jsonify({'msg': 'Container not found'}), 404
 
-@docker_bp.route('/stop_container/<int:container_id>', methods=['POST'])
+@docker_bp.route('/stop_container/<string:container_id>', methods=['POST'])
 @login_required
 def stop_container(container_id):
-    container = Container.query.get_or_404(container_id)
-    container, error = docker_service.stop_container(container)
-    if error:
-        return jsonify({'msg': error}), 403
-    return jsonify({'msg': 'Container stopped successfully'}), 201
+    container = Container.get_by_id(container_id)
+    if container:
+        container, error = docker_service.stop_container(container)
+        if error:
+            return jsonify({'msg': error}), 403
+        return jsonify({'msg': 'Container stopped successfully'}), 201
+    else:
+        return jsonify({'msg': 'Container not found'}), 403
 
-@docker_bp.route('/run_container/<int:image_id>', methods=['POST'])
+@docker_bp.route('/run_container/<string:image_id>', methods=['POST'])
 @login_required
 def run_container(image_id):
     image = Image.query.get_or_404(image_id)

@@ -16,28 +16,30 @@ def create_container():
     image_id = lab.image.image_id
     try:
         container = client.containers.run(image_id, detach=True)
-        container_id = container.id
     except Exception as e:
         return jsonify({'msg': f'Error creating container: {str(e)}'}), 500
 
-    new_container = Container(container_id=container_id, lab_id=lab_id, student_id=current_user.id)
+    new_container = Container(container_id=container.id, lab_id=lab_id, user_id=current_user.id)
     db.session.add(new_container)
     db.session.commit()
-    return jsonify({'msg': 'Container created successfully', 'container_id': container_id}), 201
+    return jsonify({'msg': 'Container created successfully', 'container_id': container.id}), 201
 
-@containers_bp.route('/delete_container/<int:container_id>', methods=['DELETE'])
+@containers_bp.route('/delete_container/<string:container_id>', methods=['DELETE'])
 @login_required
 def delete_container(container_id):
-    container = Container.query.get_or_404(container_id)
-    if container.student_id != current_user.id:
-        return jsonify({'msg': 'Unauthorized'}), 403
-    try:
-        container = client.containers.get(container.container_id)
-        container.stop()
-        container.remove()
-    except Exception as e:
-        return jsonify({'msg': f'Error stopping/removing container: {str(e)}'}), 500
+    container = Container.getById(container_id)
+    if container:
+        if container.student_id != current_user.id:
+            return jsonify({'msg': 'Unauthorized'}), 403
+        try:
+            container = client.containers.get(container.container_id)
+            container.stop()
+            container.remove()
+        except Exception as e:
+            return jsonify({'msg': f'Error stopping/removing container: {str(e)}'}), 500
 
-    db.session.delete(container)
-    db.session.commit()
-    return jsonify({'msg': 'Container deleted successfully'}), 200
+        db.session.delete(container)
+        db.session.commit()
+        return jsonify({'msg': 'Container deleted successfully'}), 200
+    else:
+        return jsonify({'msg': 'Container not found'}), 404

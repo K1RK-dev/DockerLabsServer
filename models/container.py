@@ -8,5 +8,13 @@ class Container(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     user = db.relationship('User', backref='container', lazy=True)
 
+    @staticmethod
+    def get_by_id(container_id):
+        container = Container.query.filter_by(container_id=container_id).first()
+        if container:
+            return container
+        else:
+            return None
+
     def __repr__(self):
         return f'<Container {self.container_id}>'

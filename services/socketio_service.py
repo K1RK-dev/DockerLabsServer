@@ -24,8 +24,17 @@ def register_socketio_handlers(socketio):
             if container.status != 'running':
                 socketio.emit('terminal_output', {'output': f"Container {container_id} not running"}, 'error')
                 return
-            cmd = ['/bin/bash']
+            cmd = ['/bin/sh']
             socketio.start_background_task(target=shell_process, container=container, cmd=cmd)
+
+            exec_result = container.exec_run('whoami && hostname', stream=True)
+            user_host_info = exec_result.output.decode('utf-8').splitlines()
+
+            socketio.emit('terminal_info', {
+                'user': user_host_info[0],
+                'host': user_host_info[1]
+            })
+
         except docker.errors.NotFound:
             socketio.emit('terminal_output', {'output': f"Container {container_id} not found."})
         except Exception as e:
@@ -69,7 +78,7 @@ def register_socketio_handlers(socketio):
         input_data = data['input']
         try:
             container = docker_client.containers.get(container_id)
-            exec_instance = container.exec_run(['/bin/bash', '-c', input_data], stream=False, tty=False)
+            exec_instance = container.exec_run(['/bin/sh', '-c', input_data], stream=False, tty=False)
 
             output = exec_instance.output.decode('utf-8')
 
